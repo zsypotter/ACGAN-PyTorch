@@ -22,7 +22,7 @@ from folder import ImageFolder
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', required=True, help='cifar10 | imagenet')
+parser.add_argument('--dataset', required=True, help='cifar10 | imagenet | AWA')
 parser.add_argument('--dataroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
@@ -80,6 +80,17 @@ if opt.dataset == 'imagenet':
         ]),
         classes_idx=(10, 20)
     )
+elif opt.dataset == 'AWA':
+    # folder dataset
+    dataset = dset.ImageFolder(
+        root=opt.dataroot,
+        transform=transforms.Compose([
+            transforms.Scale(opt.imageSize),
+            transforms.CenterCrop(opt.imageSize),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ])
+    )
 elif opt.dataset == 'cifar10':
     dataset = dset.CIFAR10(
         root=opt.dataroot, download=True,
@@ -104,20 +115,20 @@ num_classes = int(opt.num_classes)
 nc = 3
 
 # Define the generator and initialize the weights
-if opt.dataset == 'imagenet':
-    netG = _netG(ngpu, nz)
-else:
+if opt.dataset == 'cifar10':
     netG = _netG_CIFAR10(ngpu, nz)
+else:
+    netG = _netG(ngpu, nz)
 netG.apply(weights_init)
 if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
 # Define the discriminator and initialize the weights
-if opt.dataset == 'imagenet':
-    netD = _netD(ngpu, num_classes)
-else:
+if opt.dataset == 'cifar10':
     netD = _netD_CIFAR10(ngpu, num_classes)
+else:
+    netD = _netD(ngpu, num_classes)
 netD.apply(weights_init)
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
