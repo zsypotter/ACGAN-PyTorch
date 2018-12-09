@@ -19,6 +19,7 @@ from torch.autograd import Variable
 from utils import weights_init, compute_acc
 from network import _netG, _netD, _netD_CIFAR10, _netG_CIFAR10
 from folder import ImageFolder
+from tensorboardX import SummaryWriter
 
 
 parser = argparse.ArgumentParser()
@@ -189,6 +190,8 @@ optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 avg_loss_D = 0.0
 avg_loss_G = 0.0
 avg_loss_A = 0.0
+
+writer = SummaryWriter()
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
         ############################
@@ -264,16 +267,15 @@ for epoch in range(opt.niter):
         print('[%d/%d][%d/%d] Loss_D: %.4f (%.4f) Loss_G: %.4f (%.4f) D(x): %.4f D(G(z)): %.4f / %.4f Acc: %.4f (%.4f)'
               % (epoch, opt.niter, i, len(dataloader),
                  errD.data[0], avg_loss_D, errG.data[0], avg_loss_G, D_x, D_G_z1, D_G_z2, accuracy, avg_loss_A))
-        if i % 100 == 0:
-            vutils.save_image(
-                real_cpu, '%s/real_samples.png' % opt.outf)
-            print('Label for eval = {}'.format(eval_label))
+        if i % 50 == 0:
             fake = netG(eval_noise)
-            vutils.save_image(
-                fake.data,
-                '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch)
-            )
+            vis_fake = (fake + 1) / 2
+            vis_real = (real_cpu + 1) / 2
+            writer.add_image('fake', vis_fake[0:5], epoch * len(dataloader) + i)
+            writer.add_image('real', vis_real[0:5], epoch * len(dataloader) + i)
 
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
+
+writer.close()
